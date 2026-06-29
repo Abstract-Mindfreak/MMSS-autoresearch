@@ -1,0 +1,20 @@
+{
+  "code": 200,
+  "data": {
+    "description": "",
+    "html": "<html><head><meta name=\"color-scheme\" content=\"light dark\"></head><body><pre style=\"word-wrap: break-word; white-space: pre-wrap;\"># MMSS System Requirements\n# Многоуровневая Мета-Семантическая Система\n\n# Flask Web Framework\nFlask>=3.0.0\nFlask-WTF>=1.2.0\nWTForms>=3.1.0\n\n# Environment variables\npython-dotenv>=1.0.0\n\n# YAML config for dataset pipeline\nPyYAML>=6.0.0\npsycopg2-binary>=2.9.9\nmistralai>=0.4.2\n\n\n# Для будущих расширений (опционально):\n# numpy>=1.20.0  # Для расширенных математических вычислений\n# scipy>=1.7.0   # Для оптимизации и научных расчетов\n# sympy>=1.8     # Для символьной математики и формул\n</pre></body></html>",
+    "httpStatus": 200,
+    "httpStatusText": "",
+    "title": "",
+    "url": "https://raw.githubusercontent.com/kleafrog-source/mmss-builder/main/requirements.txt",
+    "usage": {
+      "tokens": 253
+    }
+  },
+  "meta": {
+    "usage": {
+      "tokens": 253
+    }
+  },
+  "status": 20000
+}
