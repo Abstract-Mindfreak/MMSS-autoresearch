@@ -1,0 +1,20 @@
+{
+  "code": 200,
+  "data": {
+    "description": "",
+    "html": "<html><head><meta name=\"color-scheme\" content=\"light dark\"></head><body><pre style=\"word-wrap: break-word; white-space: pre-wrap;\">import os\nimport sys\n\nTARGET_DIR = r\"D:\\AMMS-Vault\"\nSCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))\nOUTPUT_FILE = os.path.join(SCRIPT_DIR, \"directory_structure.txt\")\n\ndef human_readable_size(size_bytes):\n    if size_bytes == 0:\n        return \"0 B\"\n    for unit in ['B', 'KB', 'MB', 'GB']:\n        if size_bytes < 1024.0:\n            if unit == 'B':\n                return f\"{int(size_bytes)} {unit}\"\n            else:\n                return f\"{size_bytes:.1f} {unit}\"\n        size_bytes /= 1024.0\n    return f\"{size_bytes:.1f} TB\"\n\ndef dump_clean_structure(root, output_file):\n    root_abs = os.path.abspath(root)\n    with open(output_file, 'w', encoding='utf-8') as f:\n        f.write(f\"Структура: {root_abs}\\n\")\n        f.write(\"=\"*60 + \"\\n\\n\")\n\n        # Соберём все относительные пути файлов для быстрой проверки\n        file_paths = set()\n        dir_paths = set()\n\n        for dirpath, dirnames, filenames in os.walk(root_abs):\n            rel_dir = os.path.relpath(dirpath, root_abs)\n            if rel_dir == \".\":\n                rel_dir = \"\"\n            dir_paths.add(rel_dir if rel_dir else \".\")\n\n            for filename in filenames:\n                rel_file = os.path.relpath(os.path.join(dirpath, filename), root_abs)\n                file_paths.add(rel_file)\n\n        # Отсортируем всё для предсказуемого порядка\n        all_items = sorted(file_paths | dir_paths)\n\n        # Выводим каждый элемент\n        for item in all_items:\n            if item in file_paths:\n                # Это файл\n                abs_path = os.path.join(root_abs, item)\n                try:\n                    size = os.path.getsize(abs_path)\n                except (OSError, FileNotFoundError):\n                    size = 0\n                size_str = human_readable_size(size)\n                f.write(f\"{item} size: {size_str}\\n\")\n            else:\n                # Это папка (возможно, пустая)\n                if item == \".\":\n                    continue  # корень не выводим отдельно — файлы и так от корня\n                f.write(f\"{item}\\n\")\n\nif __name__ == \"__main__\":\n    if not os.path.exists(TARGET_DIR):\n        print(f\"[Ошибка] Директория не найдена: {TARGET_DIR}\")\n        sys.exit(1)\n\n    print(f\"Генерация чистой структуры → {OUTPUT_FILE}\")\n    dump_clean_structure(TARGET_DIR, OUTPUT_FILE)\n    print(\"Готово.\")</pre></body></html>",
+    "httpStatus": 200,
+    "httpStatusText": "",
+    "title": "",
+    "url": "https://raw.githubusercontent.com/kleafrog-source/mmss-builder/main/structure.py",
+    "usage": {
+      "tokens": 639
+    }
+  },
+  "meta": {
+    "usage": {
+      "tokens": 639
+    }
+  },
+  "status": 20000
+}

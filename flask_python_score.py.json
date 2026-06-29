@@ -1,0 +1,20 @@
+{
+  "code": 200,
+  "data": {
+    "description": "",
+    "html": "<html><head><meta name=\"color-scheme\" content=\"light dark\"></head><body><pre style=\"word-wrap: break-word; white-space: pre-wrap;\">from __future__ import annotations\n\nimport argparse\nimport json\nimport sys\nfrom pathlib import Path\nfrom typing import Any, Dict\n\nPROJECT_ROOT = Path(__file__).resolve().parents[1]\nif str(PROJECT_ROOT) not in sys.path:\n    sys.path.insert(0, str(PROJECT_ROOT))\n\nfrom python.validate_metrics import DEFAULT_CONFIG, run_validation\n\n\ndef score_from_report(report: Dict[str, Any]) -> float:\n    metrics = report.get(\"final_metrics\") or {}\n    clean = float(metrics.get(\"test_acc_clean\", 0.0))\n    energy = float(metrics.get(\"energy_rel_v4\", 0.0))\n    v = float(metrics.get(\"V\", 0.0))\n    s = float(metrics.get(\"S\", 0.0))\n    goldenscore = float(metrics.get(\"goldenscore\", 0.0))\n    latency = float(metrics.get(\"inference_latency_ms\", 0.0))\n    eta = float(metrics.get(\"eta_tern\", 0.0))\n    zeta = float(metrics.get(\"zeta_Z3\", 0.0))\n\n    score = (\n        clean\n        - 0.10 * energy\n        + 0.01 * v\n        - 0.05 * s\n        + 0.02 * goldenscore\n        - 0.0005 * latency\n        + 0.01 * eta\n        + 0.01 * zeta\n    )\n    return round(score, 6)\n\n\ndef score_config(config_path: Path | str = DEFAULT_CONFIG) -> tuple[float, Dict[str, Any], Path]:\n    report, report_path = run_validation(config_path)\n    return score_from_report(report), report, report_path\n\n\ndef main(argv: list[str] | None = None) -> int:\n    parser = argparse.ArgumentParser(description=\"Run the canonical OMEGA/MMSS score.\")\n    parser.add_argument(\"--config\", default=str(DEFAULT_CONFIG))\n    parser.add_argument(\"--json\", action=\"store_true\")\n    args = parser.parse_args(argv)\n\n    score, report, report_path = score_config(Path(args.config))\n    if args.json:\n        print(json.dumps({\"score\": score, \"report_path\": str(report_path), \"report\": report}, indent=2, ensure_ascii=False))\n    else:\n        print(score)\n    return 0\n\n\nif __name__ == \"__main__\":\n    raise SystemExit(main())\n\n</pre></body></html>",
+    "httpStatus": 200,
+    "httpStatusText": "",
+    "title": "",
+    "url": "https://raw.githubusercontent.com/kleafrog-source/mmss-builder/main/python/score.py",
+    "usage": {
+      "tokens": 542
+    }
+  },
+  "meta": {
+    "usage": {
+      "tokens": 542
+    }
+  },
+  "status": 20000
+}
