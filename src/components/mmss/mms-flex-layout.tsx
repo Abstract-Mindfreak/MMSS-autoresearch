@@ -18,6 +18,10 @@ import { AIAssistantPanel } from "./panels/ai-assistant-panel";
 import { PromptGeneratorPanel } from "./panels/prompt-generator-panel";
 import { MetricsPanel } from "./panels/metrics-panel";
 import { ConsolePanel } from "./panels/console-panel";
+import { AutoResearchPanel } from "./panels/auto-research-panel";
+import { MMSSModelsPanel } from "./panels/mmss-models-panel";
+import { MMSSReportsPanel } from "./panels/mmss-reports-panel";
+import { MMSSComparePanel } from "./panels/mmss-compare-panel";
 import { Badge } from "@/components/ui/badge";
 
 const factory = (node: LayoutTestCase) => {
@@ -44,6 +48,14 @@ const factory = (node: LayoutTestCase) => {
       return <MetricsPanel />;
     case "console":
       return <ConsolePanel />;
+    case "autoResearch":
+      return <AutoResearchPanel />;
+    case "mmssModels":
+      return <MMSSModelsPanel />;
+    case "mmssReports":
+      return <MMSSReportsPanel />;
+    case "mmssCompare":
+      return <MMSSComparePanel />;
     default:
       return <div className="text-[#c9d1d9] p-4">Unknown component: {component}</div>;
   }
@@ -84,6 +96,9 @@ export function MMSFlexLayout() {
           </Badge>
           <Badge variant="outline" className="border-violet-500/50 text-violet-400 text-[10px] px-2 py-0.5">
             A-MMSS Active
+          </Badge>
+          <Badge variant="outline" className="border-amber-500/50 text-amber-400 text-[10px] px-2 py-0.5 hidden sm:inline-flex">
+            Auto Research
           </Badge>
         </div>
       </header>

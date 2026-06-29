@@ -14,6 +14,10 @@ const navItems = [
   { id: "game", label: "Game", icon: "🎮", section: "tools" },
   { id: "ai", label: "AI Assistant", icon: "🤖", section: "tools" },
   { id: "orchestrator", label: "Orchestrator", icon: "🎼", section: "tools" },
+  { id: "auto_research", label: "Auto Research", icon: "🔬", section: "research" },
+  { id: "mmss_models", label: "MMSS Models", icon: "🧬", section: "research" },
+  { id: "mmss_reports", label: "MMSS Reports", icon: "📝", section: "research" },
+  { id: "mmss_compare", label: "MMSS Compare", icon: "⚖️", section: "research" },
   { id: "tasks", label: "Tasks", icon: "📋", section: "system" },
   { id: "settings", label: "Settings", icon: "⚙️", section: "system" },
 ];
@@ -22,6 +26,7 @@ const sections = [
   { id: "main", label: "Main" },
   { id: "modules", label: "Modules" },
   { id: "tools", label: "Tools" },
+  { id: "research", label: "Research" },
   { id: "system", label: "System" },
 ];
 

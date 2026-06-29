@@ -1,0 +1,20 @@
+{
+  "code": 200,
+  "data": {
+    "description": "",
+    "html": "<html><head><meta name=\"color-scheme\" content=\"light dark\"></head><body><pre style=\"word-wrap: break-word; white-space: pre-wrap;\"># Goal\n\nRun a fully local, deterministic auto-research loop around OMEGA/MMSS assets\nand local Ollama integration.\n\n# Rules\n\n- Only mutate ASSET files:\n  - `python/configs/*.yaml`\n  - `mmss_specs/*.json`\n  - `llm/prompts/*.md`\n- Do not modify the scoring definition in `python/score.py`.\n- Do not modify `omega_core.json` after it is created.\n- Change only one asset per round.\n- Keep each change small and reversible.\n\n# Metric\n\nMaximize the numeric score returned by `python/score.py`.\n\n# Targets\n\n- Target score: `>= 0.92`\n- Minimum improvement epsilon: `0.0005`\n- Stop after `3` consecutive non-improving rounds\n- Default max rounds: `12`\n\n# Stop Conditions\n\n- `auto_research/stop.flag` exists\n- Target score reached\n- Plateau condition reached\n- Manual stop from the operator\n\n</pre></body></html>",
+    "httpStatus": 200,
+    "httpStatusText": "",
+    "title": "",
+    "url": "https://raw.githubusercontent.com/kleafrog-source/mmss-builder/main/auto_research/instructions.md",
+    "usage": {
+      "tokens": 247
+    }
+  },
+  "meta": {
+    "usage": {
+      "tokens": 247
+    }
+  },
+  "status": 20000
+}

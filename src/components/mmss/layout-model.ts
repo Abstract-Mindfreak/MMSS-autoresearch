@@ -12,7 +12,7 @@ export const defaultLayoutModel: IJsonModel = {
     children: [
       {
         type: "tabset",
-        weight: 22,
+        weight: 20,
         children: [
           {
             type: "tab",
@@ -23,7 +23,7 @@ export const defaultLayoutModel: IJsonModel = {
       },
       {
         type: "row",
-        weight: 50,
+        weight: 40,
         children: [
           {
             type: "tabset",
@@ -66,11 +66,11 @@ export const defaultLayoutModel: IJsonModel = {
       },
       {
         type: "row",
-        weight: 28,
+        weight: 20,
         children: [
           {
             type: "tabset",
-            weight: 60,
+            weight: 55,
             children: [
               {
                 type: "tab",
@@ -86,7 +86,7 @@ export const defaultLayoutModel: IJsonModel = {
           },
           {
             type: "tabset",
-            weight: 40,
+            weight: 45,
             children: [
               {
                 type: "tab",
@@ -97,6 +97,44 @@ export const defaultLayoutModel: IJsonModel = {
                 type: "tab",
                 component: "console",
                 name: "Console Output",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        type: "row",
+        weight: 20,
+        children: [
+          {
+            type: "tabset",
+            weight: 50,
+            children: [
+              {
+                type: "tab",
+                component: "autoResearch",
+                name: "Auto Research",
+              },
+              {
+                type: "tab",
+                component: "mmssModels",
+                name: "MMSS Models",
+              },
+            ],
+          },
+          {
+            type: "tabset",
+            weight: 50,
+            children: [
+              {
+                type: "tab",
+                component: "mmssReports",
+                name: "MMSS Reports",
+              },
+              {
+                type: "tab",
+                component: "mmssCompare",
+                name: "MMSS Compare",
               },
             ],
           },
