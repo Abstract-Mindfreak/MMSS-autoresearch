@@ -113,21 +113,6 @@ export function MMSFlexLayout() {
           className="h-full"
         />
       </div>
-
-      {/* Status bar */}
-      <footer className="flex items-center justify-between px-4 py-1.5 bg-[#161b22] border-t border-[#30363d] text-[10px] text-[#8b949e] shrink-0">
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            All Systems Operational
-          </span>
-          <span>Provider: Local Ollama</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <span>flexlayout-react v0.9</span>
-          <span>Next.js + TypeScript</span>
-        </div>
-      </footer>
     </div>
   );
 }

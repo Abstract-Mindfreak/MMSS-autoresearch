@@ -1,24 +1,30 @@
-"use client";
+"use client"
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import React, { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { DOMAIN_PROFILES, getDomainSubdomains } from "@/lib/mmss/domains"
 
 interface ReassemblyResult {
-  eta_R: number;
-  V_applied: number;
-  G_S: number;
-  reorganized_complexity: number;
+  eta_R: number
+  V_applied: number
+  G_S: number
+  reorganized_complexity: number
+  D_f: number
+  disintegration_index: number
+  coherent_assembly: number
 }
 
 export function PFRPanel() {
-  const [domain, setDomain] = useState("Financial Analysis");
-  const [isActive, setIsActive] = useState(true);
-  const [result, setResult] = useState<ReassemblyResult | null>(null);
-  const [isComputing, setIsComputing] = useState(false);
+  const [domain, setDomain] = useState("Financial Analysis")
+  const [isActive] = useState(true)
+  const [result, setResult] = useState<ReassemblyResult | null>(null)
+  const [isComputing, setIsComputing] = useState(false)
+  const [error, setError] = useState("")
+  const [subdomain, setSubdomain] = useState("")
 
-  const parameters = {
+  const [parameters, setParameters] = useState({
     area: 1.0,
     S: 0.8,
     Xi_topo: 0.9,
@@ -27,27 +33,45 @@ export function PFRPanel() {
     delta_V: 0.6,
     delta_S: 0.4,
     cost: 1.2,
-  };
+    R_T: 1.618,
+  })
 
-  const handleReassembly = () => {
-    setIsComputing(true);
-    setTimeout(() => {
-      setResult({
-        eta_R: 0.87,
-        V_applied: 0.73,
-        G_S: 0.92,
-        reorganized_complexity: 0.65,
-      });
-      setIsComputing(false);
-    }, 1500);
-  };
+  const subdomains = getDomainSubdomains(domain)
+
+  const handleReassembly = async () => {
+    setIsComputing(true)
+    setError("")
+
+    try {
+      const response = await fetch("/api/mmss/pfr", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          domain,
+          params: parameters,
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error ?? "Failed to run PFR cycle")
+      }
+
+      setResult(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to run PFR cycle")
+    } finally {
+      setIsComputing(false)
+    }
+  }
 
   return (
-    <div className="flex flex-col h-full bg-[#0d1117] text-[#c9d1d9] overflow-y-auto p-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+    <div className="flex h-full flex-col overflow-y-auto bg-[#0d1117] p-4 text-[#c9d1d9]">
+      <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-lg">🔄</span>
+          <span className="text-lg">PFR</span>
           <div>
             <h2 className="text-sm font-semibold text-white">
               PFR - Practical Fractal Reassembly
@@ -58,7 +82,7 @@ export function PFRPanel() {
           </div>
         </div>
         <span
-          className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+          className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
             isActive
               ? "bg-emerald-500/20 text-emerald-400"
               : "bg-red-500/20 text-red-400"
@@ -68,115 +92,136 @@ export function PFRPanel() {
         </span>
       </div>
 
-      {/* Domain selection */}
       <div className="mb-4">
-        <Label className="text-[11px] text-[#8b949e] mb-1.5 block">
+        <Label className="mb-1.5 block text-[11px] text-[#8b949e]">
           Target Domain
         </Label>
-        <Input
+        <select
           value={domain}
-          onChange={(e) => setDomain(e.target.value)}
-          className="bg-[#161b22] border-[#30363d] text-white text-sm h-8"
-          placeholder="Enter domain..."
-        />
+          onChange={(e) => {
+            setDomain(e.target.value)
+            setSubdomain("")
+          }}
+          className="h-8 w-full rounded-md border border-[#30363d] bg-[#161b22] px-2 text-sm text-white"
+        >
+          {DOMAIN_PROFILES.map((entry) => (
+            <option key={entry.name} value={entry.name}>
+              {entry.name}
+            </option>
+          ))}
+        </select>
       </div>
 
-      {/* Parameters grid */}
-      <div className="rounded-lg bg-[#161b22] border border-[#30363d] p-3 mb-4">
-        <h3 className="text-[11px] font-semibold text-[#8b949e] uppercase tracking-wider mb-2">
+      {subdomains.length > 0 ? (
+        <div className="mb-4">
+          <Label className="mb-1.5 block text-[11px] text-[#8b949e]">Subdomain</Label>
+          <select
+            value={subdomain}
+            onChange={(e) => setSubdomain(e.target.value)}
+            className="h-8 w-full rounded-md border border-[#30363d] bg-[#161b22] px-2 text-sm text-white"
+          >
+            <option value="">General</option>
+            {subdomains.map((entry) => (
+              <option key={entry} value={entry}>
+                {entry}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      <div className="mb-4 rounded-lg border border-[#30363d] bg-[#161b22] p-3">
+        <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#8b949e]">
           Parameters
         </h3>
         <div className="grid grid-cols-2 gap-2">
           {Object.entries(parameters).map(([key, value]) => (
-            <div
-              key={key}
-              className="flex items-center justify-between bg-[#0d1117] rounded-md px-2 py-1"
-            >
-              <span className="text-[10px] text-[#8b949e] font-mono">
-                {key}
-              </span>
-              <span className="text-[11px] text-white font-mono">
-                {value}
-              </span>
+            <div key={key}>
+              <span className="mb-1 block font-mono text-[10px] text-[#8b949e]">{key}</span>
+              <Input
+                type="number"
+                step="0.01"
+                value={value}
+                onChange={(e) => setParameters((prev) => ({ ...prev, [key]: Number(e.target.value) }))}
+                className="h-8 border-[#30363d] bg-[#0d1117] text-[11px] text-white"
+              />
             </div>
           ))}
         </div>
       </div>
 
-      {/* Formula */}
-      <div className="rounded-lg bg-[#161b22] border border-[#30363d] p-3 mb-4">
-        <h3 className="text-[11px] font-semibold text-[#8b949e] uppercase tracking-wider mb-2">
+      <div className="mb-4 rounded-lg border border-[#30363d] bg-[#161b22] p-3">
+        <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#8b949e]">
           Formula
         </h3>
-        <div className="bg-[#0d1117] rounded-md p-2 font-mono text-[11px] text-emerald-400">
-          η_R = (ΔV / ΔS_reorganized) × (G_S / Cost_complexity)
+        <div className="rounded-md bg-[#0d1117] p-2 font-mono text-[11px] text-emerald-400">
+          eta_R = (deltaV / deltaS_reorganized) x (G_S / cost_complexity)
         </div>
       </div>
 
-      {/* Action */}
       <Button
         onClick={handleReassembly}
         disabled={isComputing}
-        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] h-8 mb-4"
+        className="mb-4 h-8 w-full bg-emerald-600 text-[12px] text-white hover:bg-emerald-700"
       >
         {isComputing ? "Computing..." : "Run Full Reassembly Cycle"}
       </Button>
 
-      {/* Results */}
-      {result && (
-        <div className="rounded-lg bg-[#161b22] border border-emerald-500/30 p-3">
-          <h3 className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+      {error ? (
+        <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] text-red-300">
+          {error}
+        </div>
+      ) : null}
+
+      {result ? (
+        <div className="rounded-lg border border-emerald-500/30 bg-[#161b22] p-3">
+          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-emerald-400">
             Results
           </h3>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-[#8b949e]">
-                Reassembly Efficiency (η_R)
+                Reassembly Efficiency
               </span>
               <span className="text-sm font-bold text-emerald-400">
-                {result.eta_R}
+                {result.eta_R.toFixed(3)}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-[#8b949e]">
-                Applied Value (V)
-              </span>
-              <span className="text-sm font-mono text-white">
-                {result.V_applied}
+              <span className="text-[11px] text-[#8b949e]">Applied Value</span>
+              <span className="font-mono text-sm text-white">
+                {result.V_applied.toFixed(3)}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-[#8b949e]">
-                Semantic Gravity (G_S)
-              </span>
-              <span className="text-sm font-mono text-white">
-                {result.G_S}
+              <span className="text-[11px] text-[#8b949e]">Semantic Gravity</span>
+              <span className="font-mono text-sm text-white">
+                {result.G_S.toFixed(3)}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-[#8b949e]">
                 Reorganized Complexity
               </span>
-              <span className="text-sm font-mono text-white">
-                {result.reorganized_complexity}
+              <span className="font-mono text-sm text-white">
+                {result.reorganized_complexity.toFixed(3)}
               </span>
             </div>
-          </div>
-          {/* Progress bar */}
-          <div className="mt-3">
-            <div className="flex justify-between text-[10px] text-[#8b949e] mb-1">
-              <span>Efficiency</span>
-              <span>{Math.round(result.eta_R * 100)}%</span>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-[#8b949e]">D_f</span>
+              <span className="font-mono text-sm text-white">{result.D_f.toFixed(3)}</span>
             </div>
-            <div className="w-full h-1.5 rounded-full bg-[#0d1117]">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500"
-                style={{ width: `${result.eta_R * 100}%` }}
-              />
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-[#8b949e]">Disintegration Index</span>
+              <span className="font-mono text-sm text-white">{result.disintegration_index.toFixed(3)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-[#8b949e]">Coherent Assembly</span>
+              <span className="font-mono text-sm text-white">{result.coherent_assembly.toFixed(3)}</span>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
-  );
+  )
 }

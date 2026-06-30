@@ -1,196 +1,232 @@
-"use client";
+"use client"
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import React, { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { DOMAIN_PROFILES } from "@/lib/mmss/domains"
 
 export function PromptGeneratorPanel() {
-  const [selectedModule, setSelectedModule] = useState("pfr");
-  const [generatedPrompt, setGeneratedPrompt] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [config, setConfig] = useState({
+    prompt_type: "full",
+    domain: "MMSS",
+    task_context: "",
+    role_description: "",
+    instructions: "",
+    expected_result: "",
+    ethical_constraints: "",
+    export_format: "text",
+    enable_pfr: true,
+    enable_frp: true,
+    enable_ammss: true,
+    target_eta_r: true,
+    target_value: true,
+    target_coherence: true,
+    target_cohesion: true,
+  })
+  const [generatedPrompt, setGeneratedPrompt] = useState("")
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [error, setError] = useState("")
+  const [showConfig, setShowConfig] = useState(false)
 
-  const modules = [
-    { id: "pfr", label: "PFR", color: "emerald" },
-    { id: "frp", label: "FRP", color: "cyan" },
-    { id: "ammss", label: "A-MMSS", color: "violet" },
-    { id: "full", label: "Full Pipeline", color: "amber" },
-  ];
+  const generatePrompt = async () => {
+    setIsGenerating(true)
+    setGeneratedPrompt("")
+    setError("")
 
-  const generatePrompt = () => {
-    setIsGenerating(true);
-    setGeneratedPrompt("");
-
-    const prompts: Record<string, string> = {
-      pfr: `# PFR Fractal Reassembly Prompt
-
-Analyze the following domain using the Practical Fractal Reassembly (PFR) engine:
-
-1. Identify all semantic layers and their interconnections
-2. Calculate the fractal dimension D_f of the knowledge topology
-3. Apply reassembly cycle with parameters:
-   - Area (A) = 1.0
-   - Entropy (S) = 0.8
-   - Topological index (Ξ_topo) = 0.9
-   - Semantic weight (W) = 0.95
-4. Compute reassembly efficiency: η_R = (ΔV / ΔS_reorganized) × (G_S / Cost_complexity)
-5. Evaluate applied value: V = 1 - (C_val ⊗ Φ_Domain) / (G_S × D_f × R_T)
-
-Output the results in structured JSON format with all intermediate calculations.`,
-      frp: `# FRP Temporal Navigation Prompt
-
-Navigate the recursive scenario using the Temporal Navigator:
-
-1. Assess current chaos level and plot coherence
-2. Map recursive temporal pathways
-3. Evaluate emotional trigger states
-4. Track iteration index across recursive layers
-5. Calculate temporal stability metrics
-6. Generate navigation recommendations
-
-Provide a temporal navigation report with pathway analysis and stability metrics.`,
-      ammss: `# A-MMSS Context Weaving Prompt
-
-Execute full context weaving cycle:
-
-1. Calculate semantic gravity (2nd order):
-   G_S^(2) = (1/R_T^2) × ((S_1_mean + β×Var(S_1))) / (Ξ_topo^(2) ⊗ Φ_topology)
-2. Evaluate optimization target:
-   opt_A-MMSS = (Φ_fractal_field^(2) × Φ_universal_cohesion) × (1/Cost_eth^(2)) × absolute_contextuality
-3. Apply ethical stabilization constraints
-4. Measure absolute contextuality index
-5. Generate context weaving report
-
-Output results in structured format with all semantic gravity calculations.`,
-      full: `# Full MMSS Pipeline Prompt
-
-Execute the complete MMSS multi-level semantic analysis:
-
-## Phase 1: PFR - Fractal Reassembly
-- Analyze semantic layers
-- Compute reassembly efficiency η_R
-- Apply fractal transforms
-
-## Phase 2: FRP - Temporal Navigation
-- Map recursive temporal pathways
-- Navigate scenarios with emotional triggers
-- Track iteration coherence
-
-## Phase 3: A-MMSS - Context Weaving
-- Calculate semantic gravity G_S^(2)
-- Execute optimization cycle
-- Apply ethical stabilization
-
-## Output
-Comprehensive analysis report combining all three modules with cross-referenced results.`,
-    };
-
-    const targetPrompt = prompts[selectedModule] || prompts.pfr;
-
-    // Simulate typing effect
-    let i = 0;
-    const interval = setInterval(() => {
-      setGeneratedPrompt(targetPrompt.slice(0, i + 20));
-      i += 20;
-      if (i >= targetPrompt.length) {
-        setGeneratedPrompt(targetPrompt);
-        clearInterval(interval);
-        setIsGenerating(false);
+    try {
+      const response = await fetch("/api/mmss/prompt", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(config),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error ?? "Prompt generation failed")
       }
-    }, 30);
-
-    return () => clearInterval(interval);
-  };
+      setGeneratedPrompt(data.prompt ?? "")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Prompt generation failed")
+    } finally {
+      setIsGenerating(false)
+    }
+  }
 
   return (
-    <div className="flex flex-col h-full bg-[#0d1117] text-[#c9d1d9] overflow-y-auto p-4">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-lg">✍️</span>
+    <div className="flex h-full flex-col overflow-y-auto bg-[#0d1117] p-4 text-[#c9d1d9]">
+      <div className="mb-4 flex items-center gap-2">
+        <span className="text-lg">PR</span>
         <div>
-          <h2 className="text-sm font-semibold text-white">
-            Prompt Generator
-          </h2>
-          <p className="text-[10px] text-[#8b949e]">MMSS Prompt Templates</p>
+          <h2 className="text-sm font-semibold text-white">Prompt Generator</h2>
+          <p className="text-[10px] text-[#8b949e]">MMSS specialized prompt builder</p>
         </div>
       </div>
 
-      {/* Module Selection */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {modules.map((mod) => (
-          <button
-            key={mod.id}
-            onClick={() => setSelectedModule(mod.id)}
-            className={`px-3 py-1.5 rounded-md text-[11px] font-medium transition-all ${
-              selectedModule === mod.id
-                ? `bg-${mod.color}-500/20 text-${mod.color}-400 border border-${mod.color}-500/30`
-                : "bg-[#161b22] text-[#8b949e] border border-[#30363d] hover:border-[#8b949e]"
-            }`}
-            style={
-              selectedModule === mod.id
-                ? {
-                    backgroundColor:
-                      mod.color === "emerald"
-                        ? "rgba(16, 185, 129, 0.2)"
-                        : mod.color === "cyan"
-                        ? "rgba(6, 182, 212, 0.2)"
-                        : mod.color === "violet"
-                        ? "rgba(139, 92, 246, 0.2)"
-                        : "rgba(245, 158, 11, 0.2)",
-                    borderColor:
-                      mod.color === "emerald"
-                        ? "rgba(16, 185, 129, 0.3)"
-                        : mod.color === "cyan"
-                        ? "rgba(6, 182, 212, 0.3)"
-                        : mod.color === "violet"
-                        ? "rgba(139, 92, 246, 0.3)"
-                        : "rgba(245, 158, 11, 0.3)",
-                    color:
-                      mod.color === "emerald"
-                        ? "#10b981"
-                        : mod.color === "cyan"
-                        ? "#06b6d4"
-                        : mod.color === "violet"
-                        ? "#8b5cf6"
-                        : "#f59e0b",
-                  }
-                : {}
-            }
+      <div className="mb-3 grid grid-cols-2 gap-2 rounded-lg border border-[#30363d] bg-[#161b22] p-3">
+        <div>
+          <label className="mb-1 block text-[10px] text-[#8b949e]">Prompt Type</label>
+          <select
+            value={config.prompt_type}
+            onChange={(e) => setConfig((prev) => ({ ...prev, prompt_type: e.target.value }))}
+            className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 text-[11px] text-white"
           >
-            {mod.label}
-          </button>
-        ))}
+            <option value="full">Full MMSS</option>
+            <option value="pfr">PFR</option>
+            <option value="frp">FRP</option>
+            <option value="ammss">A-MMSS</option>
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-[10px] text-[#8b949e]">Domain</label>
+          <select
+            value={config.domain}
+            onChange={(e) => setConfig((prev) => ({ ...prev, domain: e.target.value }))}
+            className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 text-[11px] text-white"
+          >
+            {DOMAIN_PROFILES.map((domain) => (
+              <option key={domain.name} value={domain.name}>
+                {domain.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="col-span-2">
+          <label className="mb-1 block text-[10px] text-[#8b949e]">Task Context</label>
+          <Textarea
+            value={config.task_context}
+            onChange={(e) => setConfig((prev) => ({ ...prev, task_context: e.target.value }))}
+            className="min-h-[88px] border-[#30363d] bg-[#0d1117] text-[11px] text-white"
+          />
+        </div>
+        <div className="col-span-2">
+          <label className="mb-1 block text-[10px] text-[#8b949e]">Role Description</label>
+          <Textarea
+            value={config.role_description}
+            onChange={(e) => setConfig((prev) => ({ ...prev, role_description: e.target.value }))}
+            className="min-h-[64px] border-[#30363d] bg-[#0d1117] text-[11px] text-white"
+          />
+        </div>
       </div>
 
-      {/* Generate */}
-      <Button
-        onClick={generatePrompt}
-        disabled={isGenerating}
-        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] h-8 mb-4"
-      >
-        {isGenerating ? "Generating..." : "Generate Prompt"}
-      </Button>
+      <div className="mb-3 rounded-lg border border-[#30363d] bg-[#161b22] p-3">
+        <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#8b949e]">
+          MMSS Components
+        </h3>
+        <div className="grid grid-cols-3 gap-2 text-[11px]">
+          {[
+            ["enable_pfr", "PFR"],
+            ["enable_frp", "FRP"],
+            ["enable_ammss", "A-MMSS"],
+            ["target_eta_r", "eta_R"],
+            ["target_value", "V -> 1.0"],
+            ["target_coherence", "Psi_ops"],
+            ["target_cohesion", "Phi_cohesion"],
+          ].map(([key, label]) => (
+            <label key={key} className="flex items-center gap-2 text-[#c9d1d9]">
+              <input
+                type="checkbox"
+                checked={config[key as keyof typeof config] as boolean}
+                onChange={(e) =>
+                  setConfig((prev) => ({ ...prev, [key]: e.target.checked }))
+                }
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+      </div>
 
-      {/* Output */}
-      {generatedPrompt && (
-        <div className="rounded-lg bg-[#161b22] border border-[#30363d] p-3 flex-1">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-[11px] font-semibold text-[#8b949e] uppercase tracking-wider">
+      <div className="mb-3 grid grid-cols-2 gap-2 rounded-lg border border-[#30363d] bg-[#161b22] p-3">
+        <div>
+          <label className="mb-1 block text-[10px] text-[#8b949e]">Instructions</label>
+          <Textarea
+            value={config.instructions}
+            onChange={(e) => setConfig((prev) => ({ ...prev, instructions: e.target.value }))}
+            className="min-h-[72px] border-[#30363d] bg-[#0d1117] text-[11px] text-white"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-[10px] text-[#8b949e]">Expected Result</label>
+          <Textarea
+            value={config.expected_result}
+            onChange={(e) => setConfig((prev) => ({ ...prev, expected_result: e.target.value }))}
+            className="min-h-[72px] border-[#30363d] bg-[#0d1117] text-[11px] text-white"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-[10px] text-[#8b949e]">Ethical Constraints</label>
+          <Textarea
+            value={config.ethical_constraints}
+            onChange={(e) => setConfig((prev) => ({ ...prev, ethical_constraints: e.target.value }))}
+            className="min-h-[72px] border-[#30363d] bg-[#0d1117] text-[11px] text-white"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-[10px] text-[#8b949e]">Export Format</label>
+          <select
+            value={config.export_format}
+            onChange={(e) => setConfig((prev) => ({ ...prev, export_format: e.target.value }))}
+            className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 text-[11px] text-white"
+          >
+            <option value="text">Text</option>
+            <option value="markdown">Markdown</option>
+            <option value="json">JSON</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="mb-4 flex gap-2">
+        <Button
+          onClick={() => void generatePrompt()}
+          disabled={isGenerating}
+          className="h-8 flex-1 bg-emerald-600 text-[12px] text-white hover:bg-emerald-700"
+        >
+          {isGenerating ? "Generating..." : "Generate Prompt"}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 border-[#30363d] px-3 text-[11px] text-[#c9d1d9]"
+          onClick={() => setShowConfig((prev) => !prev)}
+        >
+          👁
+        </Button>
+      </div>
+
+      {error ? (
+        <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] text-red-300">
+          {error}
+        </div>
+      ) : null}
+
+      {showConfig ? (
+        <pre className="mb-4 whitespace-pre-wrap rounded-lg border border-[#30363d] bg-[#161b22] p-3 font-mono text-[10px] text-[#8b949e]">
+          {JSON.stringify(config, null, 2)}
+        </pre>
+      ) : null}
+
+      {generatedPrompt ? (
+        <div className="flex-1 rounded-lg border border-[#30363d] bg-[#161b22] p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#8b949e]">
               Generated Prompt
             </h3>
             <Button
               variant="ghost"
               size="sm"
-              className="text-[10px] text-[#8b949e] h-6 px-2"
-              onClick={() => navigator.clipboard.writeText(generatedPrompt)}
+              className="h-6 px-2 text-[10px] text-[#8b949e]"
+              onClick={() => void navigator.clipboard.writeText(generatedPrompt)}
             >
               Copy
             </Button>
           </div>
-          <pre className="text-[11px] text-[#c9d1d9] whitespace-pre-wrap font-mono leading-relaxed max-h-64 overflow-y-auto">
+          <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-[#c9d1d9]">
             {generatedPrompt}
           </pre>
         </div>
-      )}
+      ) : null}
     </div>
-  );
+  )
 }

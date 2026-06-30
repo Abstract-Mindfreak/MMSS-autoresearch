@@ -1,132 +1,129 @@
-"use client";
+"use client"
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react"
 
 interface LogEntry {
-  id: number;
-  timestamp: string;
-  level: "info" | "warn" | "error" | "success";
-  source: string;
-  message: string;
+  id: number
+  timestamp: string
+  level: "info" | "warn" | "error" | "success"
+  source: string
+  message: string
 }
 
 export function ConsolePanel() {
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [autoScroll, setAutoScroll] = useState(true);
-  const logsEndRef = useRef<HTMLDivElement>(null);
-
-  const logMessages = [
-    { level: "info", source: "Core", message: "MMSS System initialized successfully" },
-    { level: "success", source: "PFR", message: "Fractal Reassembly Engine activated (η_R=0.87)" },
-    { level: "success", source: "FRP", message: "Temporal Navigator online - ready for recursive scenarios" },
-    { level: "success", source: "A-MMSS", message: "Context Weaver v2.0 initialized with ethical constraints" },
-    { level: "info", source: "Orchestrator", message: "Pipeline configuration loaded from memory" },
-    { level: "info", source: "AI", message: "Ollama connection established (mmss-gemma4-q4:latest)" },
-    { level: "warn", source: "FRP", message: "Chaos level elevated to 0.8 - monitoring required" },
-    { level: "info", source: "PFR", message: "Domain analysis completed: Financial Analysis (D_f=2.34)" },
-    { level: "success", source: "A-MMSS", message: "Semantic gravity G_S^(2) calculated: 0.91" },
-    { level: "info", source: "Orchestrator", message: "Auto cycle started - processing 6 agents" },
-    { level: "info", source: "Game", message: "Game engine initialized - 3 modes available" },
-    { level: "warn", source: "Core", message: "Memory usage at 72% - consider optimization" },
-    { level: "info", source: "PFR", message: "Reassembly cycle 142 completed successfully" },
-    { level: "error", source: "FRP", message: "Temporal mismatch at iteration 5 - auto-correcting" },
-    { level: "success", source: "A-MMSS", message: "Context weaving cycle complete - contextuality: 0.95" },
-    { level: "info", source: "AI", message: "Model inference completed (latency: 2.3s)" },
-    { level: "success", source: "Orchestrator", message: "All agents completed - pipeline score: 0.88" },
-    { level: "info", source: "Core", message: "System heartbeat: all modules responsive" },
-  ];
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [autoScroll, setAutoScroll] = useState(true)
+  const [error, setError] = useState("")
+  const logsEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    let id = 0;
-    const addLog = () => {
-      const msg = logMessages[id % logMessages.length];
-      id++;
-      setLogs((prev) => [
-        ...prev.slice(-200), // Keep last 200 logs
-        {
-          id,
-          timestamp: new Date().toLocaleTimeString(),
-          level: msg.level,
-          source: msg.source,
-          message: msg.message,
-        },
-      ]);
-    };
+    let cancelled = false
 
-    // Add initial logs quickly
-    for (let i = 0; i < 5; i++) {
-      setTimeout(() => addLog(), i * 200);
+    const loadLogs = async () => {
+      try {
+        const response = await fetch("/api/system/logs")
+        const data = await response.json()
+        if (!response.ok) {
+          throw new Error(data.error ?? "Failed to load logs")
+        }
+        if (!cancelled) {
+          setLogs(
+            (data ?? []).map(
+              (
+                log: Omit<LogEntry, "id"> & { id: string | number },
+                index: number
+              ) => ({
+                id: typeof log.id === "number" ? log.id : index + 1,
+                timestamp: new Date(log.timestamp).toLocaleTimeString(),
+                level: log.level,
+                source: log.source,
+                message: log.message,
+              })
+            )
+          )
+          setError("")
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load logs")
+        }
+      }
     }
 
-    // Then add logs periodically
+    void loadLogs()
     const interval = setInterval(() => {
-      addLog();
-    }, 2500);
+      void loadLogs()
+    }, 2500)
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [])
 
   useEffect(() => {
     if (autoScroll) {
-      logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      logsEndRef.current?.scrollIntoView({ behavior: "smooth" })
     }
-  }, [logs, autoScroll]);
+  }, [logs, autoScroll])
 
   const levelColors = {
     info: "text-[#8b949e]",
     warn: "text-yellow-400",
     error: "text-red-400",
     success: "text-emerald-400",
-  };
+  }
 
   const levelBg = {
     info: "",
     warn: "bg-yellow-500/5",
     error: "bg-red-500/5",
     success: "bg-emerald-500/5",
-  };
+  }
 
   return (
-    <div className="flex flex-col h-full bg-[#0d1117] text-[#c9d1d9]">
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[#30363d] shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">📋</span>
-          <h2 className="text-sm font-semibold text-white">Console</h2>
-          <span className="text-[10px] text-[#8b949e]">
-            {logs.length} entries
-          </span>
+    <div className="flex h-full flex-col bg-[#0d1117] text-[#c9d1d9]">
+      <div className="shrink-0 border-b border-[#30363d] px-3 py-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">LG</span>
+            <h2 className="text-sm font-semibold text-white">Console</h2>
+            <span className="text-[10px] text-[#8b949e]">{logs.length} entries</span>
+          </div>
+          <button
+            onClick={() => setLogs([])}
+            className="rounded px-2 py-1 text-[10px] text-[#8b949e] transition-colors hover:bg-[#161b22] hover:text-white"
+          >
+            Clear
+          </button>
         </div>
-        <button
-          onClick={() => setLogs([])}
-          className="text-[10px] text-[#8b949e] hover:text-white transition-colors px-2 py-1 rounded hover:bg-[#161b22]"
-        >
-          Clear
-        </button>
       </div>
 
-      {/* Log entries */}
       <div className="flex-1 overflow-y-auto p-2 font-mono text-[11px]">
+        {error ? (
+          <div className="mb-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] text-red-300">
+            {error}
+          </div>
+        ) : null}
         {logs.map((log) => (
           <div
             key={log.id}
-            className={`flex items-start gap-2 px-2 py-0.5 hover:bg-[#161b22] rounded ${levelBg[log.level]}`}
+            className={`flex items-start gap-2 rounded px-2 py-0.5 hover:bg-[#161b22] ${levelBg[log.level]}`}
           >
-            <span className="text-[10px] text-[#8b949e] shrink-0 w-16">
+            <span className="w-16 shrink-0 text-[10px] text-[#8b949e]">
               {log.timestamp}
             </span>
-            <span className={`shrink-0 w-10 font-bold uppercase ${levelColors[log.level]}`}>
+            <span className={`w-10 shrink-0 font-bold uppercase ${levelColors[log.level]}`}>
               {log.level}
             </span>
-            <span className="shrink-0 text-cyan-400 w-16">[{log.source}]</span>
+            <span className="w-16 shrink-0 text-cyan-400">[{log.source}]</span>
             <span className="text-[#c9d1d9]">{log.message}</span>
           </div>
         ))}
         <div ref={logsEndRef} />
       </div>
 
-      {/* Auto-scroll toggle */}
-      <div className="border-t border-[#30363d] px-3 py-1 flex items-center justify-between shrink-0">
+      <div className="shrink-0 border-t border-[#30363d] px-3 py-1">
         <label className="flex items-center gap-1.5 text-[10px] text-[#8b949e]">
           <input
             type="checkbox"
@@ -138,5 +135,5 @@ export function ConsolePanel() {
         </label>
       </div>
     </div>
-  );
+  )
 }

@@ -1,195 +1,254 @@
-"use client";
+"use client"
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import React, { useEffect, useMemo, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 
 interface CompareModel {
-  system_id: string;
+  system_id: string
   evaluation: {
-    coherence: number;
-    coverage: number;
-    reuse: number;
-    falsifiability: number;
-    overall: number;
-  };
+    coherence: number
+    coverage: number
+    reuse: number
+    falsifiability: number
+    overall: number
+  }
 }
 
-const models: CompareModel[] = [
-  {
-    system_id: "MMSS_META_SYNTHESIS_ULTIMATE_v1.0",
-    evaluation: { coherence: 0.94, coverage: 0.91, reuse: 0.89, falsifiability: 0.72, overall: 0.92 },
-  },
-  {
-    system_id: "MMSS_QUANTUM_GRAVITY_RELATIVITY_STACK_v1",
-    evaluation: { coherence: 0.96, coverage: 0.93, reuse: 0.92, falsifiability: 0.78, overall: 0.94 },
-  },
-  {
-    system_id: "MMSS_PHYSIC_2_0_RETROCAUSAL_AUTOENCODER_v1",
-    evaluation: { coherence: 0.91, coverage: 0.87, reuse: 0.85, falsifiability: 0.70, overall: 0.89 },
-  },
-  {
-    system_id: "MMSS_FILOSOF_TOTAL_v1.0",
-    evaluation: { coherence: 0.93, coverage: 0.90, reuse: 0.88, falsifiability: 0.74, overall: 0.91 },
-  },
-];
-
-const axes = ["coherence", "coverage", "reuse", "falsifiability", "overall"] as const;
-
-const demoVerdicts: Record<string, string> = {
-  "MMSS_META_SYNTHESIS_ULTIMATE_v1.0_vs_MMSS_QUANTUM_GRAVITY_RELATIVITY_STACK_v1":
-    "MMSS_QUANTUM_GRAVITY_RELATIVITY_STACK_v1 wins with a clear advantage in falsifiability (0.78 vs 0.72) and coherence (0.96 vs 0.94). The META_SYNTHESIS model has a more ambitious architectural scope but sacrifices testability. Recommendation: use QG_STACK as the primary template and incorporate META_SYNTHESIS's universal template concepts selectively.",
-  "MMSS_META_SYNTHESIS_ULTIMATE_v1.0_vs_MMSS_PHYSIC_2_0_RETROCAUSAL_AUTOENCODER_v1":
-    "META_SYNTHESIS_ULTIMATE_v1.0 is significantly better across all dimensions. The PHYSIC_2_0 model shows its age with lower reuse (0.85) and coverage (0.87). Recommendation: migrate PHYSIC_2.0 users to META_SYNTHESIS with domain-specific configuration overlays.",
-  "MMSS_QUANTUM_GRAVITY_RELATIVITY_STACK_v1_vs_MMSS_PHYSIC_2_0_RETROCAUSAL_AUTOENCODER_v1":
-    "QUANTUM_GRAVITY_RELATIVITY_STACK_v1 dominates on every axis. The largest gap is in falsifiability (+0.08), where the retrocausal autoencoder lacks explicit testability predicates. PHYSIC_2.0 should be considered deprecated in favor of this newer model.",
-  "MMSS_META_SYNTHESIS_ULTIMATE_v1.0_vs_MMSS_FILOSOF_TOTAL_v1.0":
-    "META_SYNTHESIS edges out FILOSOF_TOTAL on coverage (0.91 vs 0.90) and overall (0.92 vs 0.91), but FILOSOF_TOTAL has stronger philosophical grounding in its Φ_total meta-form. These models are complementary — META_SYNTHESIS for practical applications, FILOSOF_TOTAL for theoretical foundations.",
-  "MMSS_QUANTUM_GRAVITY_RELATIVITY_STACK_v1_vs_MMSS_FILOSOF_TOTAL_v1.0":
-    "QG_STACK wins on most axes, especially coherence (0.96 vs 0.93) and falsifiability (0.78 vs 0.74). FILOSOF_TOTAL's strength is in its elegant formal notation but it lacks concrete operational definitions. Best approach: combine QG_STACK's testability with FILOSOF_TOTAL's meta-formalism.",
-  "MMSS_PHYSIC_2_0_RETROCAUSAL_AUTOENCODER_v1_vs_MMSS_FILOSOF_TOTAL_v1.0":
-    "FILOSOF_TOTAL_v1.0 is clearly superior across all dimensions. PHYSIC_2.0 needs significant modernization to compete with current models. The META_G self-loop pattern from FILOSOF_TOTAL could significantly improve PHYSIC_2.0's reuse and coherence scores.",
-};
-
-const scoreColor = (score: number) => (score >= 0.9 ? "#10b981" : score >= 0.7 ? "#eab308" : "#ef4444");
+const axes = ["coherence", "coverage", "reuse", "falsifiability", "overall"] as const
 
 export function MMSSComparePanel() {
-  const [modelA, setModelA] = useState(models[0].system_id);
-  const [modelB, setModelB] = useState(models[1].system_id);
-  const [verdict, setVerdict] = useState<string | null>(null);
-  const [isComparing, setIsComparing] = useState(false);
+  const [models, setModels] = useState<CompareModel[]>([])
+  const [modelA, setModelA] = useState("")
+  const [modelB, setModelB] = useState("")
+  const [verdict, setVerdict] = useState<string | null>(null)
+  const [analysis, setAnalysis] = useState<string | null>(null)
+  const [metricComparison, setMetricComparison] = useState<Record<string, { a: number; b: number; delta: number }>>({})
+  const [isComparing, setIsComparing] = useState(false)
+  const [error, setError] = useState("")
+  const [provider, setProvider] = useState<"ollama" | "mistral">("ollama")
 
-  const a = models.find((m) => m.system_id === modelA)!;
-  const b = models.find((m) => m.system_id === modelB)!;
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        const response = await fetch("/api/mmss/specs")
+        const data = await response.json()
+        if (!response.ok) {
+          throw new Error(data.error ?? "Failed to load MMSS models")
+        }
 
-  const handleCompare = () => {
-    setIsComparing(true);
-    setVerdict(null);
-    setTimeout(() => {
-      const key1 = `${modelA}_vs_${modelB}`;
-      const key2 = `${modelB}_vs_${modelA}`;
-      const result = demoVerdicts[key1] || demoVerdicts[key2] || `Comparative analysis complete. ${a.system_id} scores ${a.evaluation.overall} overall while ${b.system_id} scores ${b.evaluation.overall}. The delta is ${Math.abs(a.evaluation.overall - b.evaluation.overall).toFixed(4)}.`;
-      setVerdict(result);
-      setIsComparing(false);
-    }, 2000);
-  };
+        const mapped = (data ?? []).map(
+          (model: {
+            systemId: string
+            bestScore: number
+            evaluations?: Array<{
+              coherence: number
+              coverage: number
+              reuse: number
+              falsifiability: number
+              overall: number
+            }>
+          }) => ({
+            system_id: model.systemId,
+            evaluation: model.evaluations?.[0] ?? {
+              coherence: model.bestScore,
+              coverage: model.bestScore,
+              reuse: model.bestScore,
+              falsifiability: Math.max(0, model.bestScore - 0.1),
+              overall: model.bestScore,
+            },
+          })
+        )
 
-  const aWins = a.evaluation.overall > b.evaluation.overall;
-  const bWins = b.evaluation.overall > a.evaluation.overall;
-  const winner = aWins ? a : bWins ? b : null;
+        setModels(mapped)
+        setModelA(mapped[0]?.system_id ?? "")
+        setModelB(mapped[1]?.system_id ?? mapped[0]?.system_id ?? "")
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load MMSS models")
+      }
+    }
+
+    void loadModels()
+  }, [])
+
+  const a = useMemo(() => models.find((model) => model.system_id === modelA) ?? null, [modelA, models])
+  const b = useMemo(() => models.find((model) => model.system_id === modelB) ?? null, [modelB, models])
+
+  const handleCompare = async () => {
+    setIsComparing(true)
+    setVerdict(null)
+    setAnalysis(null)
+    setError("")
+
+    try {
+      const response = await fetch("/api/mmss/compare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ systemA: modelA, systemB: modelB, provider }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error ?? "Failed to compare MMSS models")
+      }
+      setVerdict(data.verdict ?? null)
+      setAnalysis(data.analysis ?? null)
+      setMetricComparison(data.metric_comparison ?? {})
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to compare MMSS models")
+    } finally {
+      setIsComparing(false)
+    }
+  }
+
+  const winner = useMemo(() => {
+    if (!a || !b) return null
+    if (a.evaluation.overall === b.evaluation.overall) return null
+    return a.evaluation.overall > b.evaluation.overall ? a : b
+  }, [a, b])
 
   return (
-    <div className="flex flex-col h-full bg-[#0d1117] text-[#c9d1d9] overflow-y-auto p-4">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-lg">⚖️</span>
+    <div className="flex h-full flex-col overflow-y-auto bg-[#0d1117] p-4 text-[#c9d1d9]">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+        <span className="text-lg">CP</span>
         <div>
           <h2 className="text-sm font-semibold text-white">MMSS Compare</h2>
           <p className="text-[10px] text-[#8b949e]">Side-by-Side Model Comparison</p>
         </div>
+        </div>
+        <div className="flex rounded-md border border-[#30363d] bg-[#161b22] p-0.5">
+          {(["ollama", "mistral"] as const).map((value) => (
+            <button
+              key={value}
+              onClick={() => setProvider(value)}
+              className={`rounded px-2 py-0.5 text-[9px] ${
+                provider === value ? "bg-emerald-500/20 text-emerald-400" : "text-[#8b949e]"
+              }`}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Model Selectors */}
-      <div className="grid grid-cols-2 gap-2 mb-3">
-        <div className="rounded-lg bg-[#161b22] border border-[#30363d] p-2">
-          <label className="text-[9px] text-emerald-400 font-semibold uppercase tracking-wider block mb-1">Model A</label>
+      {error ? (
+        <div className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] text-red-300">
+          {error}
+        </div>
+      ) : null}
+
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-2">
+          <label className="mb-1 block text-[9px] font-semibold uppercase tracking-wider text-emerald-400">
+            Model A
+          </label>
           <select
             value={modelA}
             onChange={(e) => setModelA(e.target.value)}
-            className="w-full bg-[#0d1117] border-[#30363d] text-[#c9d1d9] text-[10px] rounded-md px-1.5 py-1"
+            className="w-full rounded-md border-[#30363d] bg-[#0d1117] px-1.5 py-1 text-[10px] text-[#c9d1d9]"
           >
-            {models.map((m) => (
-              <option key={m.system_id} value={m.system_id}>
-                {m.system_id.split("_").slice(0, 4).join("_")} ({m.evaluation.overall})
+            {models.map((model) => (
+              <option key={model.system_id} value={model.system_id}>
+                {model.system_id.split("_").slice(0, 4).join("_")} ({model.evaluation.overall.toFixed(3)})
               </option>
             ))}
           </select>
         </div>
-        <div className="rounded-lg bg-[#161b22] border border-[#30363d] p-2">
-          <label className="text-[9px] text-violet-400 font-semibold uppercase tracking-wider block mb-1">Model B</label>
+        <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-2">
+          <label className="mb-1 block text-[9px] font-semibold uppercase tracking-wider text-violet-400">
+            Model B
+          </label>
           <select
             value={modelB}
             onChange={(e) => setModelB(e.target.value)}
-            className="w-full bg-[#0d1117] border-[#30363d] text-[#c9d1d9] text-[10px] rounded-md px-1.5 py-1"
+            className="w-full rounded-md border-[#30363d] bg-[#0d1117] px-1.5 py-1 text-[10px] text-[#c9d1d9]"
           >
-            {models.map((m) => (
-              <option key={m.system_id} value={m.system_id}>
-                {m.system_id.split("_").slice(0, 4).join("_")} ({m.evaluation.overall})
+            {models.map((model) => (
+              <option key={model.system_id} value={model.system_id}>
+                {model.system_id.split("_").slice(0, 4).join("_")} ({model.evaluation.overall.toFixed(3)})
               </option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* Compare Button */}
       <Button
-        onClick={handleCompare}
-        disabled={isComparing || modelA === modelB}
-        className="w-full bg-cyan-600 hover:bg-cyan-700 text-white text-[11px] h-7 mb-3"
+        onClick={() => void handleCompare()}
+        disabled={isComparing || !modelA || !modelB || modelA === modelB}
+        className="mb-3 h-7 w-full bg-cyan-600 text-[11px] text-white hover:bg-cyan-700"
       >
-        {isComparing ? "Analyzing..." : modelA === modelB ? "Select different models" : "🔄 Run Comparison"}
+        {isComparing ? "Analyzing..." : modelA === modelB ? "Select different models" : "Run Comparison"}
       </Button>
 
-      {/* Comparison Chart */}
-      <div className="rounded-lg bg-[#161b22] border border-[#30363d] p-3 mb-3">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[9px] text-emerald-400 font-mono">A: {modelA.split("_").slice(0, 3).join("_")}</span>
-          <span className="text-[11px] font-semibold text-white">Metric Comparison</span>
-          <span className="text-[9px] text-violet-400 font-mono">B: {modelB.split("_").slice(0, 3).join("_")}</span>
-        </div>
-
-        <div className="space-y-2">
-          {axes.map((axis) => {
-            const aVal = a.evaluation[axis];
-            const bVal = b.evaluation[axis];
-            const aIsBetter = aVal > bVal;
-
-            return (
-              <div key={axis}>
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className={`text-[10px] font-mono font-bold ${aIsBetter ? "text-emerald-400" : "text-[#8b949e]"}`}>
-                    {aVal.toFixed(2)}
-                  </span>
-                  <span className="text-[9px] text-[#8b949e] uppercase">{axis}</span>
-                  <span className={`text-[10px] font-mono font-bold ${!aIsBetter && bVal !== aVal ? "text-violet-400" : "text-[#8b949e]"}`}>
-                    {bVal.toFixed(2)}
-                  </span>
-                </div>
-                <div className="relative w-full h-3 rounded-full bg-[#0d1117]">
-                  {/* A bar (grows from left) */}
-                  <div className="absolute left-0 top-0 h-full rounded-l-full bg-emerald-500/60 transition-all duration-500" style={{ width: `${aVal * 50}%` }} />
-                  {/* B bar (grows from right) */}
-                  <div className="absolute right-0 top-0 h-full rounded-r-full bg-violet-500/60 transition-all duration-500" style={{ width: `${bVal * 50}%` }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Winner indicator */}
-        {winner && (
-          <div className="mt-3 pt-2 border-t border-[#30363d] text-center">
-            <span className="text-[10px] text-[#8b949e]">Winner: </span>
-            <Badge
-              variant="outline"
-              className="border-emerald-500/50 text-emerald-400 text-[10px] px-2 py-0.5"
-            >
-              {winner.system_id.split("_").slice(0, 4).join("_")}
-            </Badge>
-            <span className="text-[10px] text-[#8b949e] ml-1">
-              ({winner.evaluation.overall.toFixed(4)})
+      {a && b ? (
+        <div className="mb-3 rounded-lg border border-[#30363d] bg-[#161b22] p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="font-mono text-[9px] text-emerald-400">
+              A: {modelA.split("_").slice(0, 3).join("_")}
+            </span>
+            <span className="text-[11px] font-semibold text-white">Metric Comparison</span>
+            <span className="font-mono text-[9px] text-violet-400">
+              B: {modelB.split("_").slice(0, 3).join("_")}
             </span>
           </div>
-        )}
-      </div>
 
-      {/* Verdict */}
-      {verdict && (
-        <div className="rounded-lg bg-[#161b22] border border-cyan-500/30 p-3">
-          <h3 className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider mb-2">LLM Verdict</h3>
-          <p className="text-[10px] text-[#c9d1d9] leading-relaxed">{verdict}</p>
+          <div className="space-y-2">
+            {axes.map((axis) => {
+              const aVal = metricComparison[axis]?.a ?? a.evaluation[axis]
+              const bVal = metricComparison[axis]?.b ?? b.evaluation[axis]
+              const aIsBetter = aVal > bVal
+              return (
+                <div key={axis}>
+                  <div className="mb-0.5 flex items-center justify-between">
+                    <span className={`font-mono text-[10px] font-bold ${aIsBetter ? "text-emerald-400" : "text-[#8b949e]"}`}>
+                      {aVal.toFixed(2)}
+                    </span>
+                    <span className="text-[9px] uppercase text-[#8b949e]">{axis}</span>
+                    <span className={`font-mono text-[10px] font-bold ${!aIsBetter && bVal !== aVal ? "text-violet-400" : "text-[#8b949e]"}`}>
+                      {bVal.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="relative h-3 w-full rounded-full bg-[#0d1117]">
+                    <div
+                      className="absolute left-0 top-0 h-full rounded-l-full bg-emerald-500/60 transition-all duration-500"
+                      style={{ width: `${aVal * 50}%` }}
+                    />
+                    <div
+                      className="absolute right-0 top-0 h-full rounded-r-full bg-violet-500/60 transition-all duration-500"
+                      style={{ width: `${bVal * 50}%` }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {winner ? (
+            <div className="mt-3 border-t border-[#30363d] pt-2 text-center">
+              <span className="text-[10px] text-[#8b949e]">Winner: </span>
+              <Badge
+                variant="outline"
+                className="border-emerald-500/50 px-2 py-0.5 text-[10px] text-emerald-400"
+              >
+                {winner.system_id.split("_").slice(0, 4).join("_")}
+              </Badge>
+              <span className="ml-1 text-[10px] text-[#8b949e]">
+                ({winner.evaluation.overall.toFixed(4)})
+              </span>
+            </div>
+          ) : null}
         </div>
-      )}
+      ) : null}
+
+      {verdict ? (
+        <div className="rounded-lg border border-cyan-500/30 bg-[#161b22] p-3">
+          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-cyan-400">
+            Verdict
+          </h3>
+          <p className="mb-2 text-[10px] leading-relaxed text-[#c9d1d9]">{verdict}</p>
+          {analysis ? <p className="text-[10px] leading-relaxed text-[#8b949e]">{analysis}</p> : null}
+        </div>
+      ) : null}
     </div>
-  );
+  )
 }

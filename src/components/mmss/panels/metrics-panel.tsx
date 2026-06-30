@@ -1,75 +1,106 @@
-"use client";
+"use client"
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react"
 
 interface Metric {
-  label: string;
-  value: number;
-  color: string;
-  trend: "up" | "down" | "stable";
+  label: string
+  value: number
+  color: string
+  trend: "up" | "down" | "stable"
+}
+
+interface Overview {
+  average: number
+  activeModules: number
+  totalModules: number
+  pipelineStatus: string
 }
 
 export function MetricsPanel() {
-  const [metrics, setMetrics] = useState<Metric[]>([
-    { label: "PFR Efficiency (η_R)", value: 0.87, color: "#10b981", trend: "up" },
-    { label: "FRP Stability", value: 0.72, color: "#06b6d4", trend: "stable" },
-    { label: "A-MMSS Optimization", value: 0.85, color: "#8b5cf6", trend: "up" },
-    { label: "Semantic Gravity (G_S)", value: 0.91, color: "#f59e0b", trend: "up" },
-    { label: "Context Coherence", value: 0.68, color: "#10b981", trend: "down" },
-    { label: "Ethical Score", value: 0.95, color: "#06b6d4", trend: "stable" },
-    { label: "Pipeline Throughput", value: 0.78, color: "#8b5cf6", trend: "up" },
-    { label: "Response Quality", value: 0.88, color: "#f59e0b", trend: "stable" },
-  ]);
+  const [metrics, setMetrics] = useState<Metric[]>([])
+  const [overview, setOverview] = useState<Overview>({
+    average: 0,
+    activeModules: 0,
+    totalModules: 0,
+    pipelineStatus: "Loading",
+  })
+  const [error, setError] = useState("")
 
-  // Simulate live metric updates
   useEffect(() => {
+    let cancelled = false
+
+    const loadMetrics = async () => {
+      try {
+        const response = await fetch("/api/mmss/status")
+        const data = await response.json()
+        if (!response.ok) {
+          throw new Error(data.error ?? "Failed to load metrics")
+        }
+        if (!cancelled) {
+          setMetrics(data.metrics ?? [])
+          setOverview(
+            data.overview ?? {
+              average: 0,
+              activeModules: 0,
+              totalModules: 0,
+              pipelineStatus: "Loading",
+            }
+          )
+          setError("")
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load metrics")
+        }
+      }
+    }
+
+    void loadMetrics()
     const interval = setInterval(() => {
-      setMetrics((prev) =>
-        prev.map((m) => {
-          const delta = (Math.random() - 0.45) * 0.03;
-          const newVal = Math.max(0.1, Math.min(1.0, m.value + delta));
-          const trend: "up" | "down" | "stable" =
-            delta > 0.005 ? "up" : delta < -0.005 ? "down" : "stable";
-          return { ...m, value: newVal, trend };
-        })
-      );
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+      void loadMetrics()
+    }, 3000)
+
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [])
 
   const trendIcon = (trend: "up" | "down" | "stable") => {
     switch (trend) {
       case "up":
-        return "↑";
+        return "^"
       case "down":
-        return "↓";
+        return "v"
       case "stable":
-        return "→";
+        return "-"
     }
-  };
+  }
 
   return (
-    <div className="flex flex-col h-full bg-[#0d1117] text-[#c9d1d9] overflow-y-auto p-4">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-lg">📊</span>
+    <div className="flex h-full flex-col overflow-y-auto bg-[#0d1117] p-4 text-[#c9d1d9]">
+      <div className="mb-4 flex items-center gap-2">
+        <span className="text-lg">MT</span>
         <div>
-          <h2 className="text-sm font-semibold text-white">
-            System Metrics
-          </h2>
+          <h2 className="text-sm font-semibold text-white">System Metrics</h2>
           <p className="text-[10px] text-[#8b949e]">Live Performance Monitor</p>
         </div>
       </div>
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-2 gap-2 mb-4">
+      {error ? (
+        <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] text-red-300">
+          {error}
+        </div>
+      ) : null}
+
+      <div className="mb-4 grid grid-cols-2 gap-2">
         {metrics.map((metric) => (
           <div
             key={metric.label}
-            className="rounded-lg bg-[#161b22] border border-[#30363d] p-2.5"
+            className="rounded-lg border border-[#30363d] bg-[#161b22] p-2.5"
           >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] text-[#8b949e] truncate max-w-[70%]">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="max-w-[70%] truncate text-[10px] text-[#8b949e]">
                 {metric.label}
               </span>
               <span
@@ -77,17 +108,17 @@ export function MetricsPanel() {
                   metric.trend === "up"
                     ? "text-emerald-400"
                     : metric.trend === "down"
-                    ? "text-red-400"
-                    : "text-[#8b949e]"
+                      ? "text-red-400"
+                      : "text-[#8b949e]"
                 }`}
               >
                 {trendIcon(metric.trend)}
               </span>
             </div>
-            <div className="text-lg font-bold font-mono text-white mb-1">
+            <div className="mb-1 text-lg font-bold text-white">
               {metric.value.toFixed(3)}
             </div>
-            <div className="w-full h-1.5 rounded-full bg-[#0d1117]">
+            <div className="h-1.5 w-full rounded-full bg-[#0d1117]">
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
@@ -100,28 +131,31 @@ export function MetricsPanel() {
         ))}
       </div>
 
-      {/* System Overview */}
-      <div className="rounded-lg bg-[#161b22] border border-[#30363d] p-3">
-        <h3 className="text-[11px] font-semibold text-[#8b949e] uppercase tracking-wider mb-2">
+      <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-3">
+        <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#8b949e]">
           System Overview
         </h3>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-[#8b949e]">Average Score</span>
-            <span className="text-[12px] font-mono font-bold text-white">
-              {(metrics.reduce((a, m) => a + m.value, 0) / metrics.length).toFixed(3)}
+            <span className="font-mono text-[12px] font-bold text-white">
+              {overview.average.toFixed(3)}
             </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-[#8b949e]">Active Modules</span>
-            <span className="text-[12px] font-mono text-emerald-400">3 / 3</span>
+            <span className="font-mono text-[12px] text-emerald-400">
+              {overview.activeModules} / {overview.totalModules}
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-[#8b949e]">Pipeline Status</span>
-            <span className="text-[12px] font-mono text-emerald-400">Running</span>
+            <span className="font-mono text-[12px] text-emerald-400">
+              {overview.pipelineStatus}
+            </span>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }

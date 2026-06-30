@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,20 +7,134 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model SystemConfig {
+  id             String   @id @default("main")
+  theme          String   @default("dark")
+  aiProvider     String   @default("ollama")
+  ollamaBaseUrl  String   @default("http://127.0.0.1:11434")
+  ollamaModel    String   @default("mmss-gemma4-q4:latest")
+  ollamaTimeout  Int      @default(600)
+  mistralModel   String   @default("mistral-small-latest")
+  customThemeCss String?
+  updatedAt      DateTime @updatedAt
 }
 
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
+model Task {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  status      String    @default("pending")
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  comments    Comment[]
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  text      String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model MMSSSpec {
+  id          String             @id @default(uuid())
+  systemId    String             @unique
+  title       String
+  domain      String
+  purpose     String
+  version     String             @default("v1.0")
+  specJson    String
+  bestScore   Float              @default(0.0)
+  lastEval    DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  evaluations EvaluationReport[]
+}
+
+model EvaluationReport {
+  id              String    @id @default(uuid())
+  systemId        String
+  mmssSpecId      String?
+  mmssSpec        MMSSSpec? @relation(fields: [mmssSpecId], references: [id])
+  overall         Float
+  coherence       Float
+  coverage        Float
+  reuse           Float
+  falsifiability  Float
+  verdict         String
+  strengths       String
+  weaknesses      String
+  recommendations String
+  rawLlmComment   String?
+  ollamaModelUsed String?
+  createdAt       DateTime  @default(now())
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  role      String
+  content   String
+  model     String?
+  provider  String   @default("ollama")
+  createdAt DateTime @default(now())
+}
+
+model ResearchLog {
+  id                String   @id @default(uuid())
+  round             Int
+  systemId          String
+  assetKind         String
+  assetPath         String
+  changeDescription String
+  newScore          Float
+  baselineScore     Float
+  decision          String
+  ollamaModelUsed   String?
+  operation         String
+  runId             String?
+  run               ResearchRun? @relation(fields: [runId], references: [id])
+  createdAt         DateTime @default(now())
+}
+
+model PromptArtifact {
+  id             String   @id @default(uuid())
+  systemId       String?
+  topic          String?
+  provider       String   @default("ollama")
+  model          String?
+  artifactType   String   @default("tuned_prompt")
+  title          String
+  promptText     String
+  sourcePrompt   String?
+  metadataJson   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ResearchRun {
+  id                String             @id @default(uuid())
+  status            String             @default("idle")
+  mode              String             @default("mmss")
+  operation         String
+  provider          String             @default("ollama")
+  model             String?
+  selectedSystemId  String?
+  compareSystemId   String?
+  topic             String?
+  maxRounds         Int
+  targetScore       Float
+  epsilon           Float
+  stopAfterNoImprove Int
+  baselineScore     Float              @default(0.0)
+  bestScore         Float              @default(0.0)
+  currentRound      Int                @default(-1)
+  noImproveCount    Int                @default(0)
+  message           String             @default("idle")
+  startedAt         DateTime?
+  finishedAt        DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  logs              ResearchLog[]
 }
