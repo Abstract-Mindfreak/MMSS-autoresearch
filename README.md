@@ -11,7 +11,7 @@ Next.js 16 + `flexlayout-react` migration of the Flask MMSS builder with local O
 ## Install
 
 ```powershell
-cd D:\project\auto_research_and_nextjswithflexlayout-react
+cd auto_research_and_nextjswithflexlayout-react
 npm install
 npm run db:generate
 ```
@@ -21,21 +21,21 @@ npm run db:generate
 Standard Next.js dev run:
 
 ```powershell
-cd D:\project\auto_research_and_nextjswithflexlayout-react
+cd auto_research_and_nextjswithflexlayout-react
 npm run dev
 ```
 
 Single-file Python launcher:
 
 ```powershell
-cd D:\project\auto_research_and_nextjswithflexlayout-react
+cd auto_research_and_nextjswithflexlayout-react
 python .\run_app.py
 ```
 
 Python launcher on custom port:
 
 ```powershell
-cd D:\project\auto_research_and_nextjswithflexlayout-react
+cd auto_research_and_nextjswithflexlayout-react
 python .\run_app.py --port 5000
 ```
 
